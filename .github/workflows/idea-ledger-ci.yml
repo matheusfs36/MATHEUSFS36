@@ -1,0 +1,29 @@
+name: Idea Ledger CI
+
+on:
+  push:
+    paths:
+      - "idea-ledger/**"
+      - ".github/workflows/idea-ledger-ci.yml"
+  pull_request:
+    paths:
+      - "idea-ledger/**"
+      - ".github/workflows/idea-ledger-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  fidelity-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile
+        run: python -m compileall -q idea-ledger/tools idea-ledger/tests
+      - name: Validate public example
+        run: python idea-ledger/tools/idea_fidelity.py validate idea-ledger/seeds/example-public.json
+      - name: Run fidelity tests
+        run: python -m unittest discover -s idea-ledger/tests -p "test_*.py" -v
