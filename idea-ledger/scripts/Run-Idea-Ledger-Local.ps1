@@ -32,25 +32,56 @@ Write-Host "Rounds:     $RoundTrips"
 Write-Host "Output:     $output`n"
 
 $python = Get-Command python -ErrorAction SilentlyContinue
-if(-not $python){ throw 'Python não encontrado no PATH.' }
+if(-not $python){ throw 'Python nao encontrado no PATH.' }
 
-try {
-    $tags = Invoke-RestMethod -Method Get -Uri ($OllamaUrl.TrimEnd('/') + '/api/tags') -TimeoutSec 10
-} catch {
-    throw "Ollama não respondeu em $OllamaUrl. Confirme se está aberto/rodando. $($_.Exception.Message)"
+function Get-OllamaTags {
+    param([int]$TimeoutSec = 3)
+    try {
+        return Invoke-RestMethod -Method Get -Uri ($OllamaUrl.TrimEnd('/') + '/api/tags') -TimeoutSec $TimeoutSec
+    } catch {
+        return $null
+    }
 }
+
+$tags = Get-OllamaTags
+if(-not $tags){
+    $uri = [Uri]$OllamaUrl
+    $isLocal = @('127.0.0.1','localhost','::1') -contains $uri.Host
+    $ollama = Get-Command ollama -ErrorAction SilentlyContinue
+
+    if($isLocal -and $ollama){
+        Write-Host 'Ollama local nao respondeu. Tentando iniciar ollama serve...' -ForegroundColor Yellow
+        Start-Process -FilePath $ollama.Source -ArgumentList 'serve' -WindowStyle Hidden | Out-Null
+
+        foreach($attempt in 1..20){
+            Start-Sleep -Milliseconds 500
+            $tags = Get-OllamaTags
+            if($tags){ break }
+        }
+    }
+}
+
+if(-not $tags){
+    $ollamaHint = Get-Command ollama -ErrorAction SilentlyContinue
+    if($ollamaHint){
+        throw "Ollama nao respondeu em $OllamaUrl mesmo apos tentativa de inicio. Rode 'ollama serve' e teste novamente."
+    }
+    throw "Ollama nao respondeu em $OllamaUrl e o comando 'ollama' nao foi encontrado no PATH."
+}
+
+Write-Host 'Ollama online.' -ForegroundColor Green
 
 $available = @($tags.models | ForEach-Object { $_.name })
 Write-Host ('Modelos locais: ' + ($available -join ', ')) -ForegroundColor DarkCyan
 
 foreach($required in @($CompressorModel,$DecoderModel)){
     if($available -notcontains $required){
-        throw "Modelo obrigatório '$required' não encontrado. Disponíveis: $($available -join ', ')"
+        throw "Modelo obrigatorio '$required' nao encontrado. Disponiveis: $($available -join ', ')"
     }
 }
 
 if($available -notcontains $JudgeModel){
-    Write-Warning "Judge '$JudgeModel' não encontrado. Vou usar '$DecoderModel'. O relatório marcará judge_independent=false."
+    Write-Warning "Judge '$JudgeModel' nao encontrado. Vou usar '$DecoderModel'. O relatorio marcara judge_independent=false."
     $JudgeModel = $DecoderModel
 }
 
@@ -67,5 +98,5 @@ if($available -notcontains $JudgeModel){
 
 if($LASTEXITCODE -ne 0){ throw "Semantic Lab falhou com exit code $LASTEXITCODE" }
 
-Write-Host "`nPASS: experimento concluído." -ForegroundColor Green
+Write-Host "`nPASS: experimento concluido." -ForegroundColor Green
 Write-Host "Abra: $(Join-Path $output 'report.md')" -ForegroundColor Green
