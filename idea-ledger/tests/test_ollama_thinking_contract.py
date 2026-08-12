@@ -80,6 +80,37 @@ class OllamaThinkingContractTests(unittest.TestCase):
         relation = judge_schema["properties"]["atom_results"]["items"]["properties"]["relation"]
         self.assertEqual(set(relation["enum"]), {"entailed", "contradicted", "unknown"})
 
+    def test_decoder_uses_structured_schema_and_returns_only_reconstruction(self):
+        client = InspectableOllamaClient({
+            "response": '{"reconstruction":"Texto final limpo."}',
+            "done": True,
+        })
+        with redirect_stdout(io.StringIO()):
+            result = client.generate_text(
+                "qwen3:4b",
+                "prompt",
+                system="IDEA_LEDGER_DECODER_V1",
+            )
+        self.assertEqual(result, "Texto final limpo.")
+        schema = client.last_payload["format"]
+        self.assertIsInstance(schema, dict)
+        self.assertEqual(schema["required"], ["reconstruction"])
+        self.assertFalse(schema["additionalProperties"])
+        self.assertIs(client.last_payload["think"], False)
+
+    def test_decoder_rejects_reasoning_trace_inside_reconstruction(self):
+        client = InspectableOllamaClient({
+            "response": '{"reconstruction":"analise interna </think> resposta final"}',
+            "done": True,
+        })
+        with redirect_stdout(io.StringIO()):
+            with self.assertRaisesRegex(SemanticLabError, "reasoning trace"):
+                client.generate_text(
+                    "qwen3:4b",
+                    "prompt",
+                    system="IDEA_LEDGER_DECODER_V1",
+                )
+
     def test_thinking_trace_is_never_promoted_to_semantic_output(self):
         client = InspectableOllamaClient({
             "response": "",
