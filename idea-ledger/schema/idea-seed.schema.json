@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/idea-seed.schema.json",
+  "title": "Idea Seed",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "title",
+    "created_at",
+    "status",
+    "source",
+    "core",
+    "semantic_atoms",
+    "affect",
+    "genealogy"
+  ],
+  "properties": {
+    "schema_version": {"type": "string", "const": "0.1.0"},
+    "id": {"type": "string", "minLength": 3},
+    "title": {"type": "string", "minLength": 1},
+    "created_at": {"type": "string"},
+    "status": {"enum": ["captured", "reviewed", "promoted", "archived"]},
+    "source": {
+      "type": "object",
+      "required": ["kind", "ref", "raw_anchor", "visibility", "preserved"],
+      "properties": {
+        "kind": {"enum": ["conversation", "note", "observation", "document", "other"]},
+        "ref": {"type": "string"},
+        "raw_anchor": {"type": "string"},
+        "visibility": {"enum": ["private", "public"]},
+        "preserved": {"type": "boolean", "const": true}
+      }
+    },
+    "core": {
+      "type": "object",
+      "required": ["meaning", "intent", "tensions"],
+      "properties": {
+        "meaning": {"type": "string"},
+        "intent": {"type": "string"},
+        "tensions": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "semantic_atoms": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "statement", "kind", "protected", "provenance", "confidence"],
+        "properties": {
+          "id": {"type": "string"},
+          "statement": {"type": "string"},
+          "kind": {"enum": ["fact", "intent", "constraint", "uncertainty", "negation", "causality", "authorship", "affect", "relation"]},
+          "protected": {"type": "boolean"},
+          "provenance": {"enum": ["observed", "measured", "reported", "memory", "inferred", "hypothesis"]},
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+          "verbatim_tokens": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "affect": {
+      "type": "object",
+      "required": ["mode", "qualities", "confidence"],
+      "properties": {
+        "mode": {"enum": ["reported", "inferred", "unknown"]},
+        "qualities": {"type": "array", "items": {"type": "string"}},
+        "valence": {"type": ["number", "null"], "minimum": -1, "maximum": 1},
+        "arousal": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "genealogy": {
+      "type": "object",
+      "required": ["parents", "children", "derived_from"],
+      "properties": {
+        "parents": {"type": "array", "items": {"type": "string"}},
+        "children": {"type": "array", "items": {"type": "string"}},
+        "derived_from": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "compression": {"type": "object"},
+    "fidelity": {"type": "object"}
+  }
+}
