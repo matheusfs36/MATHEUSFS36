@@ -1,0 +1,14 @@
+{
+  "idea_id": "idea-example-001",
+  "atom_results": [
+    {
+      "atom_id": "a1",
+      "relation": "entailed"
+    },
+    {
+      "atom_id": "a2",
+      "relation": "entailed"
+    }
+  ],
+  "novel_material_claims": []
+}
