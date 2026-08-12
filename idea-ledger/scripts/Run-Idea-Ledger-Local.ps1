@@ -15,7 +15,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
-$tool = Join-Path $repoRoot 'idea-ledger\tools\semantic_lab.py'
+$tool = Join-Path $repoRoot 'idea-ledger\tools\semantic_lab_ollama.py'
 $sourcePath = (Resolve-Path $Source).Path
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $ideaId = "idea-$stamp"
