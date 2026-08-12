@@ -1,0 +1,61 @@
+{
+  "schema_version": "0.1.0",
+  "id": "idea-example-001",
+  "title": "Exemplo neutro de memória compacta",
+  "created_at": "2026-08-12T13:09:00-03:00",
+  "status": "captured",
+  "source": {
+    "kind": "note",
+    "ref": "example",
+    "raw_anchor": "raw/example-public.md",
+    "visibility": "public",
+    "preserved": true
+  },
+  "core": {
+    "meaning": "Uma ideia pode ser compactada sem perder compromissos protegidos.",
+    "intent": "Demonstrar o formato sem registrar conteúdo pessoal.",
+    "tensions": ["compression_vs_fidelity"]
+  },
+  "semantic_atoms": [
+    {
+      "id": "a1",
+      "statement": "A fonte original deve permanecer preservada.",
+      "kind": "constraint",
+      "protected": true,
+      "provenance": "reported",
+      "confidence": 1.0,
+      "verbatim_tokens": ["fonte original", "preservada"]
+    },
+    {
+      "id": "a2",
+      "statement": "A expressão linguística pode variar.",
+      "kind": "intent",
+      "protected": true,
+      "provenance": "reported",
+      "confidence": 1.0,
+      "verbatim_tokens": []
+    }
+  ],
+  "affect": {
+    "mode": "unknown",
+    "qualities": [],
+    "valence": null,
+    "arousal": null,
+    "confidence": 0.0
+  },
+  "genealogy": {
+    "parents": [],
+    "children": [],
+    "derived_from": []
+  },
+  "compression": {
+    "method": "semantic-seed",
+    "raw_chars": null,
+    "seed_chars": null,
+    "ratio": null
+  },
+  "fidelity": {
+    "status": "unverified",
+    "last_check": null
+  }
+}
