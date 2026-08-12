@@ -49,3 +49,17 @@ original → seed → texto1 → seed2 → texto2 → ...
 ```
 
 cada rodada é comparada com o **original**, não com a rodada anterior. Isso reduz o efeito de telefone-sem-fio.
+
+## Laboratório local de compressão semântica
+
+A fase `0.2.0` adiciona um experimento real com modelos locais via Ollama:
+
+```text
+raw → canonical anchor → compressed runtime seed → decoder → judge → fidelity gate
+```
+
+O decoder **não recebe o raw original**. O judge recebe sempre o original e a âncora canônica. Em round-trips, a rodada anterior nunca vira a nova verdade.
+
+O laboratório mede caracteres e bytes do payload sem fingir que isso equivale a tokens. Tokenização específica por modelo pode ser adicionada depois como métrica separada.
+
+Veja `experiments/README.md` e `scripts/Run-Idea-Ledger-Local.ps1`.
