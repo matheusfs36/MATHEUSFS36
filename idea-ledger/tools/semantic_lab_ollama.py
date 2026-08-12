@@ -7,11 +7,20 @@ promote a reasoning trace from `thinking` into semantic memory.
 For structured semantic stages, this adapter also sends a JSON Schema through
 Ollama's `format` field. Types such as `protected` are therefore constrained at
 the model boundary instead of being guessed or silently coerced afterwards.
+
+This adapter also adds bounded observability for slow local inference:
+- configurable per-request timeout (default 600 seconds);
+- stage/model/budget/round progress lines;
+- elapsed time for every generation request;
+- fail-closed timeout errors naming the exact semantic stage.
 """
 from __future__ import annotations
 
 import json
 import os
+import re
+import socket
+import time
 
 from idea_fidelity import IdeaLedgerError
 from semantic_lab import OllamaClient, SemanticLabError, main
@@ -134,6 +143,53 @@ def _schema_for_system(system: str):
     return None
 
 
+def _stage_name(system: str) -> str:
+    if "ANCHOR_EXTRACTOR" in system:
+        return "ANCHOR"
+    if "SEED_COMPRESSOR" in system:
+        return "COMPRESS"
+    if "FIDELITY_JUDGE" in system:
+        return "JUDGE"
+    if "DECODER" in system:
+        return "DECODE"
+    return "GENERATE"
+
+
+def _configured_timeout() -> float:
+    raw = os.getenv("IDEA_LEDGER_OLLAMA_TIMEOUT_SECONDS", "600").strip()
+    try:
+        value = float(raw)
+    except ValueError as exc:
+        raise SemanticLabError(
+            "IDEA_LEDGER_OLLAMA_TIMEOUT_SECONDS deve ser numero positivo"
+        ) from exc
+    if value <= 0:
+        raise SemanticLabError(
+            "IDEA_LEDGER_OLLAMA_TIMEOUT_SECONDS deve ser numero positivo"
+        )
+    return value
+
+
+def _progress_context(self: OllamaClient, system: str, prompt: str) -> str:
+    stage = _stage_name(system)
+    if stage == "ANCHOR":
+        return "ANCHOR"
+    if stage == "COMPRESS":
+        match = re.search(r"ALVO:\s*payload final <=\s*(\d+)\s*caracteres", prompt)
+        budget = int(match.group(1)) if match else None
+        previous = getattr(self, "_idea_ledger_budget", None)
+        if budget != previous:
+            self._idea_ledger_budget = budget
+            self._idea_ledger_round = 1
+        else:
+            self._idea_ledger_round = int(getattr(self, "_idea_ledger_round", 0)) + 1
+    budget = getattr(self, "_idea_ledger_budget", None)
+    round_index = getattr(self, "_idea_ledger_round", None)
+    if budget is not None and round_index is not None:
+        return f"BUDGET {budget} | ROUND {round_index} | {stage}"
+    return stage
+
+
 def _contract_generate(
     self: OllamaClient,
     model: str,
@@ -154,7 +210,28 @@ def _contract_generate(
     if json_mode:
         payload["format"] = _schema_for_system(system) or "json"
 
-    data = self._request("POST", "/api/generate", payload)
+    timeout = _configured_timeout()
+    self.timeout = timeout
+    context = _progress_context(self, system, prompt)
+    started = time.monotonic()
+    print(
+        f"[{context}] START | model={model} | timeout={int(timeout)}s",
+        flush=True,
+    )
+    try:
+        data = self._request("POST", "/api/generate", payload)
+    except (TimeoutError, socket.timeout) as exc:
+        elapsed = time.monotonic() - started
+        raise SemanticLabError(
+            f"Timeout no Ollama | stage={context} | model={model} | "
+            f"elapsed={elapsed:.1f}s | limit={timeout:.0f}s"
+        ) from exc
+    elapsed = time.monotonic() - started
+    print(
+        f"[{context}] DONE  | model={model} | elapsed={elapsed:.1f}s",
+        flush=True,
+    )
+
     response = data.get("response")
     if not isinstance(response, str) or not response.strip():
         thinking = data.get("thinking")
@@ -162,7 +239,8 @@ def _contract_generate(
         done_reason = data.get("done_reason")
         raise SemanticLabError(
             "Ollama nao retornou texto final em response "
-            f"(done_reason={done_reason!r}, thinking_chars={thinking_chars}). "
+            f"(stage={context}, model={model}, done_reason={done_reason!r}, "
+            f"thinking_chars={thinking_chars}). "
             "O campo thinking nunca e usado como saida semantica."
         )
     return response.strip()
