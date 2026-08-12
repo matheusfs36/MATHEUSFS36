@@ -3,6 +3,10 @@
 Reasoning-capable Ollama models such as Qwen 3 may enable thinking by default.
 The Idea Ledger contract needs the final answer in `response` and must never
 promote a reasoning trace from `thinking` into semantic memory.
+
+For structured semantic stages, this adapter also sends a JSON Schema through
+Ollama's `format` field. Types such as `protected` are therefore constrained at
+the model boundary instead of being guessed or silently coerced afterwards.
 """
 from __future__ import annotations
 
@@ -11,6 +15,123 @@ import os
 
 from idea_fidelity import IdeaLedgerError
 from semantic_lab import OllamaClient, SemanticLabError, main
+
+KINDS = [
+    "fact", "intent", "constraint", "uncertainty", "negation",
+    "causality", "authorship", "affect", "relation",
+]
+PROVENANCE = ["observed", "measured", "reported", "memory", "inferred", "hypothesis"]
+
+CORE_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "meaning": {"type": "string"},
+        "intent": {"type": "string"},
+        "tensions": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["meaning", "intent", "tensions"],
+}
+
+ANCHOR_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "title": {"type": "string"},
+        "core": CORE_SCHEMA,
+        "semantic_atoms": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "statement": {"type": "string"},
+                    "kind": {"type": "string", "enum": KINDS},
+                    "protected": {"type": "boolean"},
+                    "provenance": {"type": "string", "enum": PROVENANCE},
+                    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                    "verbatim_tokens": {"type": "array", "items": {"type": "string"}},
+                },
+                "required": [
+                    "statement", "kind", "protected", "provenance",
+                    "confidence", "verbatim_tokens",
+                ],
+            },
+        },
+        "affect": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "mode": {"type": "string", "enum": ["reported", "inferred", "unknown"]},
+                "qualities": {"type": "array", "items": {"type": "string"}},
+                "valence": {"type": ["number", "null"], "minimum": -1, "maximum": 1},
+                "arousal": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+                "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+            },
+            "required": ["mode", "qualities", "valence", "arousal", "confidence"],
+        },
+    },
+    "required": ["title", "core", "semantic_atoms", "affect"],
+}
+
+COMPRESSOR_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "core": CORE_SCHEMA,
+        "unprotected_atoms": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "statement": {"type": "string"},
+                    "kind": {"type": "string", "enum": KINDS},
+                    "provenance": {"type": "string", "enum": PROVENANCE},
+                    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                },
+                "required": ["statement", "kind", "provenance", "confidence"],
+            },
+        },
+    },
+    "required": ["core", "unprotected_atoms"],
+}
+
+JUDGE_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "idea_id": {"type": "string"},
+        "atom_results": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "atom_id": {"type": "string"},
+                    "relation": {
+                        "type": "string",
+                        "enum": ["entailed", "contradicted", "unknown"],
+                    },
+                },
+                "required": ["atom_id", "relation"],
+            },
+        },
+        "novel_material_claims": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["idea_id", "atom_results", "novel_material_claims"],
+}
+
+
+def _schema_for_system(system: str):
+    if "ANCHOR_EXTRACTOR" in system:
+        return ANCHOR_SCHEMA
+    if "SEED_COMPRESSOR" in system:
+        return COMPRESSOR_SCHEMA
+    if "FIDELITY_JUDGE" in system:
+        return JUDGE_SCHEMA
+    return None
 
 
 def _contract_generate(
@@ -31,7 +152,7 @@ def _contract_generate(
         "options": {"temperature": temperature},
     }
     if json_mode:
-        payload["format"] = "json"
+        payload["format"] = _schema_for_system(system) or "json"
 
     data = self._request("POST", "/api/generate", payload)
     response = data.get("response")
