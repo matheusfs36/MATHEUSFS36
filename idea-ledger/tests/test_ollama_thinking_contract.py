@@ -31,6 +31,35 @@ class OllamaThinkingContractTests(unittest.TestCase):
         self.assertIs(client.last_payload["stream"], False)
         self.assertEqual(client.last_payload["format"], "json")
 
+    def test_anchor_stage_uses_json_schema_and_boolean_protected(self):
+        client = InspectableOllamaClient({"response": "{}", "done": True})
+        client.generate_json(
+            "qwen3:4b",
+            "prompt",
+            system="IDEA_LEDGER_ANCHOR_EXTRACTOR_V1",
+        )
+        schema = client.last_payload["format"]
+        self.assertIsInstance(schema, dict)
+        atom_schema = schema["properties"]["semantic_atoms"]["items"]
+        self.assertEqual(atom_schema["properties"]["protected"]["type"], "boolean")
+        self.assertIn("protected", atom_schema["required"])
+        self.assertFalse(atom_schema["additionalProperties"])
+
+    def test_compressor_and_judge_stages_use_specific_schemas(self):
+        client = InspectableOllamaClient({"response": "{}", "done": True})
+        client.generate_json(
+            "qwen3:4b", "prompt", system="IDEA_LEDGER_SEED_COMPRESSOR_V1"
+        )
+        compressor_schema = client.last_payload["format"]
+        self.assertIn("unprotected_atoms", compressor_schema["required"])
+
+        client.generate_json(
+            "qwen3:8b", "prompt", system="IDEA_LEDGER_FIDELITY_JUDGE_V1"
+        )
+        judge_schema = client.last_payload["format"]
+        relation = judge_schema["properties"]["atom_results"]["items"]["properties"]["relation"]
+        self.assertEqual(set(relation["enum"]), {"entailed", "contradicted", "unknown"})
+
     def test_thinking_trace_is_never_promoted_to_semantic_output(self):
         client = InspectableOllamaClient({
             "response": "",
