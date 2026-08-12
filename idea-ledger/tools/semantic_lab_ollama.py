@@ -8,6 +8,11 @@ For structured semantic stages, this adapter also sends a JSON Schema through
 Ollama's `format` field. Types such as `protected` are therefore constrained at
 the model boundary instead of being guessed or silently coerced afterwards.
 
+The decoder is also constrained to a structured object containing only the
+final `reconstruction`. This prevents model-side reasoning text from becoming
+part of the reconstructed memory even when a model template ignores `think=false`
+and emits a reasoning trace inside the normal response channel.
+
 This adapter also adds bounded observability for slow local inference:
 - configurable per-request timeout (default 600 seconds);
 - stage/model/budget/round progress lines;
@@ -107,6 +112,15 @@ COMPRESSOR_SCHEMA = {
     "required": ["core", "unprotected_atoms"],
 }
 
+DECODER_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "reconstruction": {"type": "string", "minLength": 1},
+    },
+    "required": ["reconstruction"],
+}
+
 JUDGE_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
@@ -138,6 +152,8 @@ def _schema_for_system(system: str):
         return ANCHOR_SCHEMA
     if "SEED_COMPRESSOR" in system:
         return COMPRESSOR_SCHEMA
+    if "DECODER" in system:
+        return DECODER_SCHEMA
     if "FIDELITY_JUDGE" in system:
         return JUDGE_SCHEMA
     return None
@@ -246,8 +262,52 @@ def _contract_generate(
     return response.strip()
 
 
-# Patch only the transport boundary. All semantic policies remain in semantic_lab.py.
+def _contract_generate_text(
+    self: OllamaClient,
+    model: str,
+    prompt: str,
+    *,
+    system: str = "",
+    temperature: float = 0.1,
+) -> str:
+    if "DECODER" not in system:
+        return self._generate(
+            model,
+            prompt,
+            system=system,
+            temperature=temperature,
+            json_mode=False,
+        )
+
+    raw = self._generate(
+        model,
+        prompt,
+        system=system,
+        temperature=temperature,
+        json_mode=True,
+    )
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise SemanticLabError(
+            f"Decoder {model} nao devolveu JSON estruturado valido"
+        ) from exc
+    if not isinstance(data, dict):
+        raise SemanticLabError(f"Decoder {model} devolveu JSON que nao e objeto")
+    reconstruction = data.get("reconstruction")
+    if not isinstance(reconstruction, str) or not reconstruction.strip():
+        raise SemanticLabError("Decoder nao devolveu reconstruction valida")
+    reconstruction = reconstruction.strip()
+    if re.search(r"</?think\b", reconstruction, flags=re.IGNORECASE):
+        raise SemanticLabError(
+            "Decoder tentou incluir reasoning trace em reconstruction; saida rejeitada"
+        )
+    return reconstruction
+
+
+# Patch only the Ollama boundary. Semantic policies remain in semantic_lab.py.
 OllamaClient._generate = _contract_generate
+OllamaClient.generate_text = _contract_generate_text
 
 
 if __name__ == "__main__":
