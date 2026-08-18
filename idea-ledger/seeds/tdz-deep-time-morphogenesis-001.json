@@ -1,0 +1,118 @@
+{
+  "schema_version": "0.1.0",
+  "id": "idea-tdz-deep-time-morphogenesis-001",
+  "title": "TDZ Deep Time / Morphogenesis Engine",
+  "created_at": "2026-08-18T15:41:00-03:00",
+  "status": "captured",
+  "source": {
+    "kind": "conversation-note",
+    "ref": "2026-08-18-heidegger-landscape-coauthoring",
+    "raw_anchor": "raw/2026-08-18-tdz-deep-time-morphogenesis.md",
+    "visibility": "public",
+    "preserved": true
+  },
+  "core": {
+    "meaning": "Transformar a paisagem digital em um sistema temporal navegável que combine reconstruções passadas plausíveis, simulações futuras condicionais, leitura geomorfológica e interpretação artística, mantendo separadas evidência científica, inferência e autoria.",
+    "intent": "Permitir que humano e IAs cocriem e investiguem como um território pode ter se formado e como pode evoluir, usando o mapa real como referência e a Unreal como espaço de experiência temporal.",
+    "tensions": [
+      "scientific_evidence_vs_artistic_interpretation",
+      "historical_plausibility_vs_certainty",
+      "simulation_complexity_vs_practical_iteration",
+      "real_terrain_preservation_vs_hypothesis_generation"
+    ]
+  },
+  "semantic_atoms": [
+    {
+      "id": "a1",
+      "statement": "O sistema deve explorar um timelapse reverso que infira estados anteriores plausíveis a partir do relevo atual e de evidências geomorfológicas.",
+      "kind": "intent",
+      "protected": true,
+      "provenance": "reported",
+      "confidence": 1.0,
+      "verbatim_tokens": ["timelapse reverso"]
+    },
+    {
+      "id": "a2",
+      "statement": "O sistema deve também permitir simulações para frente com múltiplos cenários condicionais, em vez de afirmar um único futuro determinístico.",
+      "kind": "intent",
+      "protected": true,
+      "provenance": "reported",
+      "confidence": 1.0,
+      "verbatim_tokens": ["simulações"]
+    },
+    {
+      "id": "a3",
+      "statement": "Reconstruções e projeções devem distinguir dados observados, inferências, hipóteses, simulações e interpretação artística.",
+      "kind": "constraint",
+      "protected": true,
+      "provenance": "derived",
+      "confidence": 1.0,
+      "verbatim_tokens": []
+    },
+    {
+      "id": "a4",
+      "statement": "A proposta complementa o pipeline TDZ existente e se conecta à TDZ Geo Grammar, World Hermeneutics e Atlas do Olhar, sem substituir topografia, topobatimetria, imagens, fotogrametria, IA 3D, terrain refinement ou Unreal.",
+      "kind": "constraint",
+      "protected": true,
+      "provenance": "derived",
+      "confidence": 1.0,
+      "verbatim_tokens": ["TDZ Geo Grammar", "World Hermeneutics", "Atlas do Olhar"]
+    },
+    {
+      "id": "a5",
+      "statement": "O mapa deve poder ser experienciado como processo e biografia espacial, não apenas como cenário estático ou sequência cinematográfica.",
+      "kind": "meaning",
+      "protected": true,
+      "provenance": "derived",
+      "confidence": 1.0,
+      "verbatim_tokens": ["biografia espacial"]
+    },
+    {
+      "id": "a6",
+      "statement": "A IA deve atuar como interlocutora de hipóteses e aprender progressivamente como o autor observa e formula perguntas sobre o território, não apenas reproduzir aparências aprovadas.",
+      "kind": "intent",
+      "protected": true,
+      "provenance": "reported",
+      "confidence": 1.0,
+      "verbatim_tokens": ["coautoria humano-IA"]
+    },
+    {
+      "id": "a7",
+      "statement": "A implementação inicial deve privilegiar modelos simplificados, verificáveis e versionáveis antes de tentar uma simulação geológica total.",
+      "kind": "constraint",
+      "protected": true,
+      "provenance": "derived",
+      "confidence": 1.0,
+      "verbatim_tokens": []
+    }
+  ],
+  "affect": {
+    "mode": "creative-exploratory",
+    "qualities": ["curiosity", "wonder", "co-creation", "temporal-depth"],
+    "valence": 0.9,
+    "arousal": 0.7,
+    "confidence": 0.9
+  },
+  "genealogy": {
+    "parents": [
+      "TDZ Geo Grammar",
+      "World Hermeneutics",
+      "Atlas do Olhar"
+    ],
+    "children": [],
+    "derived_from": [
+      "observação do mapa distante da Ilha de Santa Catarina na Unreal",
+      "discussão sobre Heidegger, tecnologia, lugar e coautoria com IA"
+    ]
+  },
+  "compression": {
+    "method": "semantic-seed",
+    "raw_chars": null,
+    "seed_chars": null,
+    "ratio": null
+  },
+  "fidelity": {
+    "status": "unverified",
+    "last_check": null
+  }
+}
