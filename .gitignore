@@ -1,0 +1,6 @@
+# Local Idea Ledger experiment outputs may contain reconstructed private content.
+idea-ledger/experiments/runs/
+
+# Python
+__pycache__/
+*.pyc
